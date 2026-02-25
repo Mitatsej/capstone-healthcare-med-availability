@@ -1,0 +1,16 @@
+1 ----- https://www.kaggle.com/datasets/pritipoddar/inventory-data-for-pharmacy-website-in-json-format
+
+This dataset contains inventory data for a pharmacy e-commerce website in JSON format, designed for easy integration into MongoDB databases, making it ideal for MERN stack projects. It includes 10 fields:
+
+drugName: Name of the drug
+manufacturer: Drug manufacturer
+image: URL of the product image
+description: Detailed description of the drug
+expiryDate: Expiry date of the drug
+price: Price of the drug
+sideEffects: Potential side effects
+disclaimer: Important legal and medical disclaimers
+category: Drug classification (e.g., pain relief, antibiotics)
+countInStock: Quantity of the product available in stock
+
+--------------------------------------------------------------------------------------------------------------------
