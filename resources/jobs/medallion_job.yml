@@ -1,0 +1,51 @@
+# ------------------------------------------------------------
+# Databricks Job (Workflow) per Medallion Pipeline
+# Qellimi: Me automatizu ekzekutimin e pipeline:
+#   Bronze -> Silver -> (Gold me vone)
+#
+# Ky file RUHET ne GitHub si kod (Infrastructure-as-Code).
+# Job-i krijohet ne Databricks vetem kur behet: `bundle deploy`.
+#
+# IMPORTANT:
+# - notebook_path duhet me qene PATH ne WORKSPACE (jo path lokal ne repo).
+# - Me Asset Bundles, file-t upload-ohen te:
+#   ${workspace.root_path}/files/...
+# ------------------------------------------------------------
+
+resources:
+  jobs:
+    # Ky eshte "job key" (emer teknik brenda bundle).
+    # Me kete emer e thirrim edhe `bundle run`.
+    medallion_pipeline:
+      # Emri qe shfaqet ne Databricks UI te Jobs & Pipelines
+      name: medallion-pipeline
+
+      tasks:
+
+        # -------------------------
+        # TASK 1: BRONZE ingestion
+        # -------------------------
+        - task_key: bronze
+          notebook_task:
+            # Path-i ne WORKSPACE ku bundle i vendos file-t e projektit.
+            # (shkon te /Workspace/Users/<email>/.bundle/<bundle>/<target>/files/...)
+            # Shpesh eshte me stabile pa extension .ipynb
+            notebook_path: ${workspace.root_path}/files/src/notebooks/00_bronze_ingest
+
+        # -------------------------
+        # TASK 2: SILVER transform (opsionale derisa te stabilizohet)
+        # -------------------------
+        # - task_key: silver
+        #   depends_on:
+        #     - task_key: bronze
+        #   notebook_task:
+        #     notebook_path: ${workspace.root_path}/files/src/notebooks/10_silver_transform
+
+        # -------------------------
+        # TASK 3: GOLD publish (opsionale)
+        # -------------------------
+        # - task_key: gold
+        #   depends_on:
+        #     - task_key: silver
+        #   notebook_task:
+        #     notebook_path: ${workspace.root_path}/files/src/notebooks/20_gold_publish
