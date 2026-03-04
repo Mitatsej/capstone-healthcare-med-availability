@@ -1,0 +1,8 @@
+bundle:
+  name: capstone-healthcare-med-availability
+
+workspace:
+  host: https://dbc-aea8461e-562d.cloud.databricks.com
+
+include:
+  - resources/jobs/*.yml
