@@ -2,7 +2,13 @@ bundle:
   name: capstone-healthcare-med-availability
 
 workspace:
-  host: https://dbc-aea8461e-562d.cloud.databricks.com
+  host: https://dbc-6c624956-c8d8.cloud.databricks.com
 
 include:
   - resources/jobs/*.yml
+
+targets:
+  dev:
+    mode: development
+  prod:
+    mode: production

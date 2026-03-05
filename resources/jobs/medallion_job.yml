@@ -33,8 +33,22 @@ resources:
             notebook_path: ${workspace.root_path}/files/src/notebooks/00_bronze_ingest
 
         # -------------------------
-        # TASK 2: SILVER transform (opsionale derisa te stabilizohet)
+        # TASK 2: SMOKE TEST pipeline (kontrolle bazike)
         # -------------------------
+        # Ketu ekzekutojme nje notebook te veçantë qe verifikon
+        # qe tabelat kryesore Bronze/Silver ekzistojne dhe NUK jane bosh.
+        # Nese ky hap deshton, i gjithe job-i konsiderohet i deshtuar.
+        - task_key: smoke_test
+          depends_on:
+            - task_key: bronze
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/99_pipeline_smoke_test
+
+        # -------------------------
+        # TASK 3: SILVER transform (opsionale derisa te stabilizohet)
+        # -------------------------
+        # Shembull nese me vone vendosim nje orchestrator notebook per Silver:
+        #
         # - task_key: silver
         #   depends_on:
         #     - task_key: bronze
@@ -42,8 +56,10 @@ resources:
         #     notebook_path: ${workspace.root_path}/files/src/notebooks/10_silver_transform
 
         # -------------------------
-        # TASK 3: GOLD publish (opsionale)
+        # TASK 4: GOLD publish (opsionale)
         # -------------------------
+        # Shembull nese me vone vendosim orchestrator notebook per Gold:
+        #
         # - task_key: gold
         #   depends_on:
         #     - task_key: silver

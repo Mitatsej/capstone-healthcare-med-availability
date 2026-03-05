@@ -1,0 +1,37 @@
+name: Databricks Prod
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  databricks-prod:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Databricks CLI
+        run: |
+          python -m pip install --upgrade pip
+          pip install "databricks-cli>=0.205.0"
+
+      - name: Validate Databricks bundle (prod)
+        run: databricks bundle validate --target prod
+
+      - name: Deploy Databricks bundle to prod
+        run: databricks bundle deploy --target prod
+
+      - name: Run medallion_pipeline job in prod
+        run: databricks bundle run medallion_pipeline --target prod
+
