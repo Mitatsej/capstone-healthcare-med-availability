@@ -8,6 +8,9 @@ on:
 jobs:
   databricks-prod:
     runs-on: ubuntu-latest
+    # Use GitHub Environments to require approvals for prod.
+    # Configure reviewers/settings in GitHub: Settings -> Environments -> prod.
+    environment: prod
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
@@ -33,5 +36,7 @@ jobs:
         run: databricks bundle deploy --target prod
 
       - name: Run medallion_pipeline job in prod
+        # Optional: allow disabling automatic prod runs via repo variable RUN_PROD_JOB=false
+        if: ${{ vars.RUN_PROD_JOB != 'false' }}
         run: databricks bundle run medallion_pipeline --target prod
 

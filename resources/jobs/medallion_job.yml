@@ -20,12 +20,22 @@ resources:
       # Emri qe shfaqet ne Databricks UI te Jobs & Pipelines
       name: medallion-pipeline
 
+      # Shared compute for all tasks (Free Edition friendly defaults).
+      # If your workspace requires different values, adjust these fields.
+      job_clusters:
+        - job_cluster_key: shared_cluster
+          new_cluster:
+            spark_version: "14.3.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 1
+
       tasks:
 
         # -------------------------
         # TASK 1: BRONZE ingestion
         # -------------------------
         - task_key: bronze
+          job_cluster_key: shared_cluster
           notebook_task:
             # Path-i ne WORKSPACE ku bundle i vendos file-t e projektit.
             # (shkon te /Workspace/Users/<email>/.bundle/<bundle>/<target>/files/...)
@@ -33,30 +43,78 @@ resources:
             notebook_path: ${workspace.root_path}/files/src/notebooks/00_bronze_ingest
 
         # -------------------------
-        # TASK 2: SMOKE TEST pipeline (kontrolle bazike)
+        # TASK 2: SILVER transforms (all Silver tables)
         # -------------------------
-        # Ketu ekzekutojme nje notebook te veçantë qe verifikon
-        # qe tabelat kryesore Bronze/Silver ekzistojne dhe NUK jane bosh.
-        # Nese ky hap deshton, i gjithe job-i konsiderohet i deshtuar.
-        - task_key: smoke_test
+        - task_key: silver_dim_insurance
           depends_on:
             - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/insurance
+
+        - task_key: silver_dim_pharmacy
+          depends_on:
+            - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/pharmacies
+
+        - task_key: silver_dim_medication
+          depends_on:
+            - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/Medications
+
+        - task_key: silver_fact_medication_reviews
+          depends_on:
+            - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/medication
+
+        - task_key: silver_location_county
+          depends_on:
+            - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/location_county
+
+        - task_key: silver_population
+          depends_on:
+            - task_key: bronze
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/silver_transfrom/population
+
+        # -------------------------
+        # TASK 3: SILVER data-quality gate
+        # -------------------------
+        - task_key: silver_data_quality
+          depends_on:
+            - task_key: silver_dim_insurance
+            - task_key: silver_dim_pharmacy
+            - task_key: silver_dim_medication
+            - task_key: silver_fact_medication_reviews
+            - task_key: silver_location_county
+            - task_key: silver_population
+          job_cluster_key: shared_cluster
+          notebook_task:
+            notebook_path: ${workspace.root_path}/files/src/notebooks/15_silver_data_quality
+
+        # -------------------------
+        # TASK 4: SMOKE TEST pipeline (kontrolle bazike)
+        # -------------------------
+        # Verifikon qe tabelat kryesore Bronze/Silver ekzistojne dhe nuk jane bosh.
+        - task_key: smoke_test
+          depends_on:
+            - task_key: silver_data_quality
+          job_cluster_key: shared_cluster
           notebook_task:
             notebook_path: ${workspace.root_path}/files/src/notebooks/99_pipeline_smoke_test
 
         # -------------------------
-        # TASK 3: SILVER transform (opsionale derisa te stabilizohet)
-        # -------------------------
-        # Shembull nese me vone vendosim nje orchestrator notebook per Silver:
-        #
-        # - task_key: silver
-        #   depends_on:
-        #     - task_key: bronze
-        #   notebook_task:
-        #     notebook_path: ${workspace.root_path}/files/src/notebooks/10_silver_transform
-
-        # -------------------------
-        # TASK 4: GOLD publish (opsionale)
+        # TASK 5: GOLD publish (opsionale)
         # -------------------------
         # Shembull nese me vone vendosim orchestrator notebook per Gold:
         #
