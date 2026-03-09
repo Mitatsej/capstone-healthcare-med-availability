@@ -1,67 +1,126 @@
-# ------------------------------------------------------------
-# Databricks Job (Workflow) per Medallion Pipeline
-# Qellimi: Me automatizu ekzekutimin e pipeline:
-#   Bronze -> Silver -> (Gold me vone)
-#
-# Ky file RUHET ne GitHub si kod (Infrastructure-as-Code).
-# Job-i krijohet ne Databricks vetem kur behet: `bundle deploy`.
-#
-# IMPORTANT:
-# - notebook_path duhet me qene PATH ne WORKSPACE (jo path lokal ne repo).
-# - Me Asset Bundles, file-t upload-ohen te:
-#   ${workspace.root_path}/files/...
-# ------------------------------------------------------------
-
 resources:
   jobs:
-    # Ky eshte "job key" (emer teknik brenda bundle).
-    # Me kete emer e thirrim edhe `bundle run`.
     medallion_pipeline:
-      # Emri qe shfaqet ne Databricks UI te Jobs & Pipelines
-      name: medallion-pipeline
+      name: medallion_pipeline
+
+      max_concurrent_runs: 1
+      timeout_seconds: 0
+
+      tags:
+        project: capstone-healthcare-med-availability
+        architecture: medallion
+        owner: platform-engineering
+        environment: shared-workspace
 
       tasks:
-
-        # -------------------------
-        # TASK 1: BRONZE ingestion
-        # -------------------------
-        - task_key: bronze
+        - task_key: bronze_ingest
+          description: "Bronze ingestion for all raw healthcare datasets"
           notebook_task:
-            # Path-i ne WORKSPACE ku bundle i vendos file-t e projektit.
-            # (shkon te /Workspace/Users/<email>/.bundle/<bundle>/<target>/files/...)
-            # Shpesh eshte me stabile pa extension .ipynb
-            notebook_path: ${workspace.root_path}/files/src/notebooks/00_bronze_ingest
+            notebook_path: ../../src/notebooks/00_bronze/00_bronze_ingest_workflow.py
+            source: WORKSPACE
+          timeout_seconds: 3600
+          max_retries: 2
+          min_retry_interval_millis: 300000
 
-        # -------------------------
-        # TASK 2: SMOKE TEST pipeline (kontrolle bazike)
-        # -------------------------
-        # Ketu ekzekutojme nje notebook te veçantë qe verifikon
-        # qe tabelat kryesore Bronze/Silver ekzistojne dhe NUK jane bosh.
-        # Nese ky hap deshton, i gjithe job-i konsiderohet i deshtuar.
-        - task_key: smoke_test
+        - task_key: silver_diseases
+          description: "Silver transformation for diseases dataset"
           depends_on:
-            - task_key: bronze
+            - task_key: bronze_ingest
           notebook_task:
-            notebook_path: ${workspace.root_path}/files/src/notebooks/99_pipeline_smoke_test
+            notebook_path: ../../src/notebooks/01_silver/diseases.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
 
-        # -------------------------
-        # TASK 3: SILVER transform (opsionale derisa te stabilizohet)
-        # -------------------------
-        # Shembull nese me vone vendosim nje orchestrator notebook per Silver:
-        #
-        # - task_key: silver
-        #   depends_on:
-        #     - task_key: bronze
-        #   notebook_task:
-        #     notebook_path: ${workspace.root_path}/files/src/notebooks/10_silver_transform
+        - task_key: silver_geography
+          description: "Silver transformation for geography dataset"
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../../src/notebooks/01_silver/geography.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
 
-        # -------------------------
-        # TASK 4: GOLD publish (opsionale)
-        # -------------------------
-        # Shembull nese me vone vendosim orchestrator notebook per Gold:
-        #
-        # - task_key: gold
-        #   depends_on:
-        #     - task_key: silver
-        #   notebook_task:
-        #     notebook_path: ${workspace.root_path}/files/src/notebooks/20_gold_publish
+        - task_key: silver_insurance
+          description: "Silver transformation for insurance dataset"
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../../src/notebooks/01_silver/insurance.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: silver_inventory
+          description: "Silver transformation for inventory dataset"
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../../src/notebooks/01_silver/inventory.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: silver_medication
+          description: "Silver transformation for medication dataset"
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../../src/notebooks/01_silver/medication.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: silver_pharmacies
+          description: "Silver transformation for pharmacies dataset"
+          depends_on:
+            - task_key: bronze_ingest
+          notebook_task:
+            notebook_path: ../../src/notebooks/01_silver/pharmacies.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: silver_data_quality
+          description: "Run data quality checks after all silver transformations finish"
+          depends_on:
+            - task_key: silver_diseases
+            - task_key: silver_geography
+            - task_key: silver_insurance
+            - task_key: silver_inventory
+            - task_key: silver_medication
+            - task_key: silver_pharmacies
+          notebook_task:
+            notebook_path: ../../src/notebooks/15_silver_data_quality.ipynb
+            source: WORKSPACE
+          timeout_seconds: 1800
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: gold_publish
+          description: "Publish gold tables and business-ready outputs"
+          depends_on:
+            - task_key: silver_data_quality
+          notebook_task:
+            notebook_path: ../../src/notebooks/02_gold/disease_medication_pharmacy_gold.ipynb
+            source: WORKSPACE
+          timeout_seconds: 2400
+          max_retries: 1
+          min_retry_interval_millis: 180000
+
+        - task_key: smoke_test
+          description: "Final smoke test for pipeline validation"
+          depends_on:
+            - task_key: gold_publish
+          notebook_task:
+            notebook_path: ../../src/notebooks/99_pipeline_smoke_test.ipynb
+            source: WORKSPACE
+          timeout_seconds: 1200
+          max_retries: 0
