@@ -1,3 +1,8 @@
 # Databricks notebook source
+print("Starting Bronze ingestion workflow")
 
-print("Bronze workflow wrapper started")
+# COMMAND ----------
+dbutils.notebook.run("./00_bronze_ingest", 0)
+
+# COMMAND ----------
+print("Bronze ingestion workflow finished")
