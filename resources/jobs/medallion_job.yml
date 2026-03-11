@@ -1,18 +1,32 @@
 resources:
   jobs:
     medallion_pipeline:
+     # Medallion pipeline orchestration:
+      # Bronze ingestion -> parallel Silver transformations -> Data Quality -> Gold publishing -> Smoke Test
       name: medallion_pipeline
 
+      # Prevent overlapping executions of the same pipeline.
+      # This keeps writes to Bronze/Silver/Gold layers controlled.
       max_concurrent_runs: 1
-      timeout_seconds: 0
 
+      # No global timeout for the whole job.
+      # Each task has its own timeout configuration below.
+      timeout_seconds: 0
+      
+      # Metadata tags for easier identification in Databricks Jobs UI.
       tags:
         project: capstone-healthcare-med-availability
         architecture: medallion
         owner: platform-engineering
         environment: shared-workspace
-
+      email_notifications:
+        on_failure:
+          - mitatsejdiu18@gmail.com
+          - zgjimsadikaj05@gmail.com
       tasks:
+        # Bronze ingestion entry point.
+        # A workflow wrapper is used here because it proved more stable
+        # than running the Bronze notebook directly in this environment.
         - task_key: bronze_ingest
           description: "Bronze ingestion for all raw healthcare datasets"
           notebook_task:
@@ -22,6 +36,8 @@ resources:
           max_retries: 2
           min_retry_interval_millis: 300000
 
+        # Silver transformations start only after Bronze ingestion succeeds.
+        # These tasks can run in parallel because they depend only on Bronze.
         - task_key: silver_diseases
           description: "Silver transformation for diseases dataset"
           depends_on:
@@ -88,6 +104,8 @@ resources:
           max_retries: 1
           min_retry_interval_millis: 180000
 
+        # Data quality checks run only after all Silver transformations complete successfully.
+        # This acts as a validation gate before publishing Gold outputs.
         - task_key: silver_data_quality
           description: "Run data quality checks after all silver transformations finish"
           depends_on:
@@ -104,6 +122,8 @@ resources:
           max_retries: 1
           min_retry_interval_millis: 180000
 
+        # Gold publishing starts only after Silver data quality checks pass.
+        # This ensures only validated Silver data is promoted to Gold.
         - task_key: gold_publish
           description: "Publish gold tables and business-ready outputs"
           depends_on:
@@ -115,6 +135,8 @@ resources:
           max_retries: 1
           min_retry_interval_millis: 180000
 
+        # Final smoke test verifies that the pipeline completed successfully
+        # and that the expected output tables are available.
         - task_key: smoke_test
           description: "Final smoke test for pipeline validation"
           depends_on:
