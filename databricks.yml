@@ -10,5 +10,8 @@ include:
 targets:
   dev:
     mode: development
+
   prod:
     mode: production
+    workspace:
+      root_path: /Workspace/Users/anduenasylaa@gmail.com/.bundle/${bundle.name}/${bundle.target}
