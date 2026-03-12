@@ -142,7 +142,6 @@ The pipeline can be executed using Databricks Asset Bundles.
 
 Example command:
 
-```bash
 databricks bundle run medallion_pipeline --target dev
 
 # Data Quality
